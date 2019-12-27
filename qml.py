@@ -1,7 +1,8 @@
 import pennylane as qml
 from pennylane import numpy as np
 
-# Circuit is hardcoded to only have 2 qubits. For instance, the feature_map() only takes in 1 value "phi",
+# Circuit is hardcoded in several places to only have 2 qubits, despite the following variables.
+# For instance, the feature_map() only takes in 1 value "phi",
 # whereas multiple values would be needed for more qubits.
 num_qubits = 2
 shots = 10
