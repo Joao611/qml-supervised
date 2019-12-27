@@ -1,1 +1,1 @@
-# qml-supervisioned
+# qml-supervised
