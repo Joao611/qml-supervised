@@ -1,32 +1,37 @@
 import pennylane as qml
 from pennylane import numpy as np
 
-num_qubits = 5
+# Circuit is hardcoded to only have 2 qubits. For instance, the feature_map() only takes in 1 value "phi",
+# whereas multiple values would be needed for more qubits.
+num_qubits = 2
 shots = 10
+
 dev = qml.device("default.qubit", wires=num_qubits, shots=shots)
 
 def state_preparation():
 	qml.BasisState(np.zeros(num_qubits), wires=[i for i in range(num_qubits)])
 
-# def circU():
-	
+def circU(phi=None):
+	qml.CNOT(wires=[0, 1])
+	qml.RZ(phi, wires=1)
+	qml.CNOT(wires=[0, 1])
 
-def feature_map():
+def feature_map(phi=None):
 	for i in range(num_qubits):
 		qml.Hadamard(i)
-	# circU()
+	circU(phi)
 	for i in range(num_qubits):
 		qml.Hadamard(i)
-	# circU()
+	circU(phi)
 
 # def weights_variational():
 	
 
 @qml.qnode(dev)
-def circuit():
+def circuit(phi=None):
 	state_preparation()
-	feature_map()
+	feature_map(phi)
 	# weights_variational()
 	return [qml.sample(qml.PauliZ(wire)) for wire in range(num_qubits)]
 
-print(circuit())
+print(circuit(phi=0))
