@@ -6,6 +6,7 @@ from pennylane import numpy as np
 # whereas multiple values would be needed for more qubits.
 num_qubits = 2
 shots = 10
+layers = 5
 
 dev = qml.device("default.qubit", wires=num_qubits, shots=shots)
 
@@ -25,14 +26,44 @@ def feature_map(phi=None):
 		qml.Hadamard(i)
 	circU(phi)
 
-# def weights_variational():
-	
+def local_rots(layer_weights):
+	for i in range(num_qubits):
+		qml.Rot(layer_weights[0], layer_weights[1], 0, wires=i)
+
+def entanglement_gate():
+	for i in range(num_qubits):
+		qml.CZ(wires=[i, (i+1) % num_qubits])
+
+def layer_variational(weights, layer=None):
+	entanglement_gate()
+	local_rots(weights[layer])
+
+def weights_variational(weights):
+	local_rots(weights[0])
+	for l in range(layers):
+		layer_variational(weights, layer=l+1)
 
 @qml.qnode(dev)
-def circuit(phi=None):
+def circuit(weights, phi=None):
 	state_preparation()
 	feature_map(phi)
-	# weights_variational()
+	# weights_variational(weights)
 	return [qml.sample(qml.PauliZ(wire)) for wire in range(num_qubits)]
 
-print(circuit(phi=0))
+# (layers+1) x qubits
+weights = [
+	[1, 2],
+	[1, 1],
+	[1, 1],
+	[1, 1],
+	[1, 1],
+	[1, 1]
+]
+# phi = 1
+for phi in [0, 0.5, 1, 1.5]:
+	print("phi = ", phi)
+	print(circuit(weights, phi=phi))
+	print(circuit(weights, phi=phi))
+	print(circuit(weights, phi=phi))
+	print(circuit(weights, phi=phi))
+	print("==============================")
