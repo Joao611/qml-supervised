@@ -12,7 +12,7 @@ shots = 10
 
 dev = qml.device("default.qubit", wires=num_qubits, shots=shots)
 
-L = 10
+L = 5
 
 # This should be U_phi for 2 inputs
 def U_phi(phi):
@@ -70,7 +70,8 @@ def loss(labels,predictions):
 
 def circ(X,params):
     X = np.append(X,(math.pi - X[0])*(math.pi - X[1]));
-    return circuit(X,params)
+    bias = params[0][0]
+    return circuit(X,params[1:]) + bias
 
 def cost(params,X,y):
     X = X * math.pi;
@@ -79,8 +80,8 @@ def cost(params,X,y):
     print(ls)
     return ls
 
-opt = qml.NesterovMomentumOptimizer(0.01)
-params = np.random.random((L,6)) * math.pi
+opt = qml.AdamOptimizer(0.01)
+params = np.random.random((L+1,6)) * 2 - 1
 print(params)
 
 
