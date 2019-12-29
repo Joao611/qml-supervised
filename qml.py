@@ -35,7 +35,10 @@ def U_phi(phi):
 # Should both rotations have the same parameters? or different?
 # Figure seems to imply same params
 def W_theta_part(param):
+    # Entangling section
     qml.CZ(wires=[0,1])
+    qml.CZ(wires=[1,0])
+    # Variational section
     qml.Rot(param[0],param[1],param[2],wires=[0])
     qml.Rot(param[3],param[4],param[5],wires=[1])
 
