@@ -53,7 +53,7 @@ def circuit(input,params):
 def data_set_mapping(x,y):
     x = math.sin(x * math.pi * 8)
     y = math.cos(y * math.pi * 8)
-    val = (x + y) / 2;
+    val = (x + y) / 2
     return 1 if val > 0 else -1
 
 
@@ -69,12 +69,12 @@ def loss(labels,predictions):
     return loss
 
 def circ(X,params):
-    X = np.append(X,(math.pi - X[0])*(math.pi - X[1]));
+    X = np.append(X,(math.pi - X[0])*(math.pi - X[1]))
     bias = params[0][0]
     return circuit(X,params[1:]) + bias
 
 def cost(params,X,y):
-    X = X * math.pi;
+    X = X * math.pi
     preds = [circ(x,params) for x in X]
     ls = loss(y,preds)
     print(ls)
@@ -87,9 +87,9 @@ print(params)
 
 print("---- circuit values ------")
 print("should be different?")
-print(circ([0,math.pi],params));
-print(circ([0,0],params));
-print(circ([math.pi,0],params));
+print(circ([0,math.pi],params))
+print(circ([0,0],params))
+print(circ([math.pi,0],params))
 
 for i in range(10):
     params = opt.step(lambda v: cost(v,X_data,Y_data),params)
