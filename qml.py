@@ -39,8 +39,8 @@ def W_theta_part(param):
     qml.CZ(wires=[0,1])
     qml.CZ(wires=[1,0])
     # Variational section
-    qml.Rot(param[0],param[1],param[2],wires=[0])
-    qml.Rot(param[3],param[4],param[5],wires=[1])
+    qml.Rot(param[0],param[1],0,wires=[0])
+    qml.Rot(param[2],param[3],0,wires=[1])
 
 # this should be the full circuit then
 @qml.qnode(dev)
@@ -84,7 +84,7 @@ def cost(params,X,y):
     return ls
 
 opt = qml.AdamOptimizer(0.01)
-params = np.random.random((L+1,6)) * 2 - 1
+params = np.random.random((L+1, 4)) * 2 - 1
 print(params)
 
 
