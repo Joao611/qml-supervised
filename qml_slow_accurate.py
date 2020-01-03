@@ -60,8 +60,8 @@ def circuit(input,params):
     return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
 
 def data_set_mapping(x,y):
-    x = math.sin(x * math.pi * 8)
-    y = math.cos(y * math.pi * 8)
+    x = math.sin(x * math.pi * 3)
+    y = math.cos(y * math.pi * 3)
     return (x + y) / 2
 
 def build_dataset(size):
@@ -101,20 +101,22 @@ def loss(labels,predictions):
     loss = loss / len(labels)
     return loss
 
-# Number of times to poll the circuit
-# Keep uneven else the median wont work
 R = 5
 def circ(X,params):
     X = np.append(X,(math.pi - X[0])*(math.pi - X[1]))
-    bias = params[0][0]
-    data = np.array([circuit(X,params[1:]) for x in range(R)])
+    data = np.array([circuit(X,params) for x in range(R)])
     data = data.transpose()
     a = data[0]
     b = data[1]
     # then apply the parity function
     # Which is this
     bit_string = a * b
-    return sum(bit_string) / len(bit_string)
+    # This is not entirely the same as the paper.
+    # The paper just assignes -1 or 1 based on which value was more present in the shots
+    # However since pennylane works with autograd we need to have the output of the
+    # circuit be directly used in the calculation of the loss
+    # So instead we take the mean value since median does not have a derivative implementation
+    return np.mean(bit_string)
 
 def cost(params,X,y):
     # Not sure it is nessary, but since a full rotation is 2 pi making
@@ -122,19 +124,21 @@ def cost(params,X,y):
     X = X * math.pi
     preds = [circ(x,params) for x in X]
     ls = loss(y,preds)
+    print("LOSS: " + str(ls))
     return ls
 
 
 # Paper optimizer is not implemented in pennylane so we just use a different one.
 # It seems to work file
-opt = qml.NesterovMomentumOptimizer(0.01)
+opt = qml.AdamOptimizer(0.003)
 # Not sure how the paper initializes parameters
 # If i understand some formula that it is initialized as zero
 # This is kinda uncommon in ML though
-params = np.random.random((L+1, 4)) * 2  - 1
+params = np.random.random((L, 4)) * 2  - 1
 #params = np.zeros((L+1, 4))
 print(params)
 
+# Evalutates the resulting circuit
 def evaluate():
     X_test,Y_test = build_dataset(100)
     X_test = np.array(X_test) * math.pi
@@ -146,13 +150,13 @@ def evaluate():
     print(metrics.classification_report(Y_test,preds))
     print(metrics.accuracy_score(Y_test,preds))
 
-print("---- circuit values ------")
-print("should be different?")
-print(circ([0,math.pi],params))
-print(circ([0,0],params))
-print(circ([math.pi,0],params))
+batch_size = 10
 for i in range(20):
     print("EPOCH: " + str(i))
     print(params)
-    params = opt.step(lambda v: cost(v,X_data,Y_data),params)
+    for i in range(len(X_data) // batch_size):
+        idx = i * batch_size
+        X_batch = X_data[idx:idx+batch_size]
+        Y_batch = Y_data[idx:idx+batch_size]
+        params = opt.step(lambda v: cost(v,X_batch,Y_batch),params)
     evaluate()
