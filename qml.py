@@ -1,6 +1,11 @@
 import pennylane as qml
 from pennylane import numpy as np
 import math
+from sklearn import metrics
+import random
+
+random.seed(1)
+np.random.seed(1)
 
 print("================== start ==============")
 
@@ -8,9 +13,11 @@ print("================== start ==============")
 # For instance, the feature_map() only takes in 1 value "phi",
 # whereas multiple values would be needed for more qubits.
 num_qubits = 2
-shots = 10
+# We need to manually evalutate the circuit multiple times since autograd does not work with sample
+shots = 1
 
-dev = qml.device("default.qubit", wires=num_qubits, shots=shots)
+# Analytic needs to be false cause we want exp val to only return -1 or 1
+dev = qml.device("default.qubit", wires=num_qubits, shots=shots,analytic=False)
 
 L = 5
 
@@ -52,48 +59,100 @@ def circuit(input,params):
 
     return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
 
-
 def data_set_mapping(x,y):
     x = math.sin(x * math.pi * 8)
     y = math.cos(y * math.pi * 8)
-    val = (x + y) / 2
-    return 1 if val > 0 else -1
+    return (x + y) / 2
 
+def build_dataset(size):
+    data = []
+    neg_count = 0
+    pos_count = 0
+    while True:
+        X = list(np.random.random((2,)))
+        Y = data_set_mapping(X[0],X[1])
 
-X_data = np.random.random((100,2))
-Y_data = [data_set_mapping(i[0],i[1]) for i in X_data]
+        # Implement the 0.3 seperation in the dataset
+        if Y < -0.30 and neg_count < size:
+            neg_count += 1
+            data.append([X,-1.0])
+        elif Y > 0.30 and pos_count < size:
+            pos_count += 1
+            data.append([X,1.0])
+
+        # Make sure there are 40 of each label in the set
+        if neg_count > size - 1 and pos_count > size - 1:
+            break
+    X = [val[0] for val in data]
+    Y = [val[1] for val in data]
+    return np.array(X),np.array(Y)
+
+X_data,Y_data = build_dataset(40)
 print(Y_data)
 
+
+# Calculate loss for labels
+# I have not yet found a mention of a loss function in the paper
+# So it current uses mear square error
 def loss(labels,predictions):
     loss = 0
     for l, p in zip(labels,predictions):
-        loss = loss + (l - sum(p)) ** 2
+        loss = loss + (l - p) ** 2
     loss = loss / len(labels)
     return loss
 
+# Number of times to poll the circuit
+# Keep uneven else the median wont work
+R = 5
 def circ(X,params):
     X = np.append(X,(math.pi - X[0])*(math.pi - X[1]))
     bias = params[0][0]
-    return circuit(X,params[1:]) + bias
+    data = np.array([circuit(X,params[1:]) for x in range(R)])
+    data = data.transpose()
+    a = data[0]
+    b = data[1]
+    # then apply the parity function
+    # Which is this
+    bit_string = a * b
+    return sum(bit_string) / len(bit_string)
 
 def cost(params,X,y):
+    # Not sure it is nessary, but since a full rotation is 2 pi making
+    # the features use the full range seems beneficial
     X = X * math.pi
     preds = [circ(x,params) for x in X]
     ls = loss(y,preds)
-    print(ls)
     return ls
 
-opt = qml.AdamOptimizer(0.01)
-params = np.random.random((L+1, 4)) * 2 - 1
+
+# Paper optimizer is not implemented in pennylane so we just use a different one.
+# It seems to work file
+opt = qml.NesterovMomentumOptimizer(0.01)
+# Not sure how the paper initializes parameters
+# If i understand some formula that it is initialized as zero
+# This is kinda uncommon in ML though
+params = np.random.random((L+1, 4)) * 2  - 1
+#params = np.zeros((L+1, 4))
 print(params)
 
+def evaluate():
+    X_test,Y_test = build_dataset(100)
+    X_test = np.array(X_test) * math.pi
+    preds = np.array([circ(x,params) for x in X_test])
+    preds[preds < 0] = 0
+    preds[preds > 0] = 1
+    Y_test[Y_test < 0] = 0
+    Y_test[Y_test > 0] = 1
+    print(metrics.classification_report(Y_test,preds))
+    print(metrics.accuracy_score(Y_test,preds))
 
 print("---- circuit values ------")
 print("should be different?")
 print(circ([0,math.pi],params))
 print(circ([0,0],params))
 print(circ([math.pi,0],params))
-
-for i in range(10):
-    params = opt.step(lambda v: cost(v,X_data,Y_data),params)
+for i in range(20):
+    print("EPOCH: " + str(i))
     print(params)
+    params = opt.step(lambda v: cost(v,X_data,Y_data),params)
+    evaluate()
