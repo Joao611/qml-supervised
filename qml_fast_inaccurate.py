@@ -43,15 +43,22 @@ def W_theta_part(param):
     qml.CZ(wires=[0,1])
     qml.CZ(wires=[1,0])
     # Variational section
-    qml.Rot(param[0],param[1],0,wires=[0])
-    qml.Rot(param[2],param[3],0,wires=[1])
+    qml.RY(param[0],wires=0)
+    qml.RY(param[1],wires=1)
+    qml.RZ(param[2],wires=0)
+    qml.RZ(param[3],wires=1)
 
 # this should be the full circuit then
 @qml.qnode(dev)
 def circuit(input,params):
     U_phi(input)
 
-    for param in params:
+    #First a layer of rotations before the entangling part
+    qml.RY(params[0][0],wires=0)
+    qml.RY(params[0][1],wires=1)
+    qml.RZ(params[0][2],wires=0)
+    qml.RZ(params[0][3],wires=1)
+    for param in params[1:]:
         W_theta_part(param)
 
     return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
@@ -89,8 +96,7 @@ print(Y_data)
 
 
 # Calculate loss for labels
-# I have not yet found a mention of a loss function in the paper
-# So it current uses mear square error
+# The loss in the paper does not work with outgrad so we use mean square error.
 def loss(labels,predictions):
     loss = 0
     for l, p in zip(labels,predictions):
@@ -122,7 +128,7 @@ opt = qml.AdamOptimizer(0.01)
 # Not sure how the paper initializes parameters
 # If i understand some formula that it is initialized as zero
 # This is kinda uncommon in ML though
-params = np.random.random((L, 4)) * 2  - 1
+params = np.random.normal(0,1,(L+1, 4)) * 2  - 1
 #params = np.zeros((L+1, 4))
 print(params)
 
