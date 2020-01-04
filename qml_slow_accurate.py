@@ -3,6 +3,7 @@ from pennylane import numpy as np
 import math
 from sklearn import metrics
 import random
+import scipy
 
 random.seed(1)
 np.random.seed(1)
@@ -66,10 +67,24 @@ def circuit(input,params):
 
     return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
 
+
+#Build the dataset
+random_unitary = scipy.stats.unitary_group.rvs(4)
+
+@qml.qnode(dev)
+def data_set_circuit(input):
+    U_phi(input)
+
+    qml.QubitUnitary(random_unitary,wires=[0,1])
+
+    return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
+
 def data_set_mapping(x,y):
-    x = math.sin(x * math.pi * 3)
-    y = math.cos(y * math.pi * 3)
-    return (x + y) / 2
+    X = np.array([x,y])
+    X = X * math.pi * 2
+    X = np.append(X,(math.pi - X[0])*(math.pi - X[1]))
+    Y = data_set_circuit(X)
+    return Y[0]*Y[1]
 
 def build_dataset(size):
     data = []
