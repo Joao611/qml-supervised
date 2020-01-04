@@ -3,7 +3,7 @@ from pennylane import numpy as np
 import math
 from sklearn import metrics
 import random
-import scipy
+from scipy import stats
 
 random.seed(1)
 np.random.seed(1)
@@ -67,9 +67,14 @@ def circuit(input,params):
 
     return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
 
-
 #Build the dataset
-random_unitary = scipy.stats.unitary_group.rvs(4)
+def gen_special_unitary():
+    unit = stats.unitary_group.rvs(4)
+    det = np.linalg.det(unit)
+    print(det)
+    return unit / det ** (1/4)
+
+random_unitary = gen_special_unitary()
 
 @qml.qnode(dev)
 def data_set_circuit(input):
