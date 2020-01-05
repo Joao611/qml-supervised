@@ -1,7 +1,9 @@
 import pennylane as qml
+import qiskit
 from pennylane import numpy as np
 import math
 from sklearn import metrics
+import matplotlib.pyplot as plt
 import random
 from scipy import stats
 
@@ -42,7 +44,6 @@ def U_phi(phi):
 def W_theta_part(param):
     # Entangling section
     qml.CZ(wires=[0,1])
-    qml.CZ(wires=[1,0])
     # Variational section
     qml.RY(param[0],wires=0)
     qml.RY(param[1],wires=1)
@@ -205,9 +206,32 @@ def evaluate():
     print(metrics.classification_report(Y_test,preds))
     print(metrics.accuracy_score(Y_test,preds))
 
+def plot_dataset():
+    num_samples = 50.0
+    data = [[data_set_mapping(x/num_samples,y/num_samples) for x in range(int(num_samples))] for y in range(int(num_samples))]
+    data = np.array(data)
+    data[data < -0.15] = -1
+    data[data > 0.15] = 1
+    data[np.logical_and(data != -1,data != 1)] = 0
+    plt.imshow(data,interpolation='nearest') 
+    plt.show()
+
+# def plot_classifier():
+#     num_samples = 50.0
+#     data = [[circ([x/num_samples,y/num_samples],params) for x in range(int(num_samples))] for y in range(int(num_samples))]
+#     data = np.array(data)
+#     data[data < -0.15] = -1
+#     data[data > 0.15] = 1
+#     data[np.logical_and(data != -1,data != 1)] = 0
+#     plt.imshow(data,interpolation='nearest') 
+#     plt.show()
+
+# plot_dataset()
+# plot_classifier()
 batch_size = 10
 for i in range(20):
     print("EPOCH: " + str(i))
     print(params)
     params = opt.step(lambda v: cost(v,X_data,Y_data),params)
+    # plot_classifier()
     evaluate()
