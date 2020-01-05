@@ -74,46 +74,6 @@ def gen_special_unitary():
 
 random_unitary = gen_special_unitary()
 
-@qml.qnode(dev)
-def data_set_circuit(input):
-    U_phi(input)
-    qml.QubitUnitary(random_unitary,wires=[0,1])
-    return [qml.expval(qml.PauliZ(0)),qml.expval(qml.PauliZ(1))]
-
-def data_set_mapping(x,y):
-    vec = np.array([x,y])
-    vec = vec * math.pi * 2
-    vec = np.append(vec,(math.pi - vec[0])*(math.pi - vec[1]))
-    x,y = data_set_circuit(vec)
-    return x*y
-
-def build_dataset(size):
-    data = []
-    neg_count = 0
-    pos_count = 0
-    while True:
-        X = list(np.random.random((2,)))
-        Y = data_set_mapping(X[0],X[1])
-
-        # Implement the 0.3 seperation in the dataset
-        if Y < -0.15 and neg_count < size:
-            neg_count += 1
-            data.append([X,-1.0])
-        elif Y > 0.15 and pos_count < size:
-            pos_count += 1
-            data.append([X,1.0])
-
-        # Make sure there are 40 of each label in the set
-        if neg_count > size - 1 and pos_count > size - 1:
-            break
-    np.random.shuffle(data)
-    X = [val[0] for val in data]
-    Y = [val[1] for val in data]
-    return np.array(X),np.array(Y)
-
-X_data,Y_data = build_dataset(400)
-print(Y_data)
-
 
 @qml.qnode(dev)
 def data_set_circuit(input):
@@ -213,7 +173,7 @@ def plot_dataset():
     data[data < -0.15] = -1
     data[data > 0.15] = 1
     data[np.logical_and(data != -1,data != 1)] = 0
-    plt.imshow(data,interpolation='nearest') 
+    plt.imshow(data,interpolation='nearest')
     plt.show()
 
 # def plot_classifier():
@@ -223,7 +183,7 @@ def plot_dataset():
 #     data[data < -0.15] = -1
 #     data[data > 0.15] = 1
 #     data[np.logical_and(data != -1,data != 1)] = 0
-#     plt.imshow(data,interpolation='nearest') 
+#     plt.imshow(data,interpolation='nearest')
 #     plt.show()
 
 # plot_dataset()
